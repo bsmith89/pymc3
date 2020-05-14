@@ -118,7 +118,7 @@ class SMC:
 
         for i in range(self.draws):
 
-            point = Point({v.name: init_rnd[v.name][i] for v in self.variables}, model=self.model)
+            point = Point({v.name: init_rnd[i][v.name] for v in self.variables}, model=self.model)
             population.append(self.model.dict_to_array(point))
 
         self.posterior = np.array(floatX(population))
