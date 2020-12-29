@@ -722,6 +722,16 @@ class DirichletMultinomial(Discrete):
     """
 
     def __init__(self, n, alpha, *args, **kwargs):
+        # FIXME: DirichletMultinomial doesn't seem to work unless shape is
+        # passed explicitly to the constructor.  Seems like we should be able
+        # to infer shapes from the dimensions of n and the last dimension of
+        # alpha, so why would we insist that the user pass it?  On the other
+        # hand, I'm not sure how to correctly deal with polymorphic n and
+        # alpha, or even how to easily construct a distributions shape from
+        # the symbolic shapes of two input tensors, so this seems
+        # challenging.  It's not clear to me how other distributions handle
+        # it. Unsurprisingly, since this __init__ is basically an exact
+        # clone, Multinomial seems to have this same bug.
         super().__init__(*args, **kwargs)
         n = tt.as_tensor_variable(n)
         alpha = tt.as_tensor_variable(alpha)
@@ -736,6 +746,12 @@ class DirichletMultinomial(Discrete):
             self.alpha = alpha
 
         self.mean = self.n * p
+        # FIXME: This way of calculating the mode, while it kind of works for
+        # the case where all elements in alpha are equal (and therefore there
+        # are k, equivilant modes and it arbitrarily picks one), it doesn't
+        # work for e.g. alpha=[0.3, 0.3, 0.4], where the correct mode for n=1
+        # should be [0, 0, 1], not [1, 0, 0]. Multinomial has this same
+        # bug.
         mode = tt.cast(tt.round(self.mean), 'int32')
         diff = self.n - tt.sum(mode, axis=-1, keepdims=True)
         inc_bool_arr = tt.abs_(diff) > 0
